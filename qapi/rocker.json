@@ -76,7 +76,7 @@
   'data': { 'name': 'str', 'enabled': 'bool', 'link-up': 'bool',
             'speed': 'uint32', 'duplex': 'RockerPortDuplex',
             'autoneg': 'RockerPortAutoneg',
-            'world_name': 'str'} }
+            'world_name': 'str' } }
 
 ##
 # @rocker-ports:

@@ -48,7 +48,7 @@ int world_do_cmd(World *world, DescInfo *info,
 }
 
 World *world_alloc(Rocker *r, size_t sizeof_private,
-                   enum rocker_world_type type, 
+                   enum rocker_world_type type,
                    const char *name, WorldOps *ops)
 {
     World *w = g_malloc0(sizeof(World) + sizeof_private);
@@ -75,9 +75,7 @@ void world_free(World *world)
     if (world->ops->uninit) {
         world->ops->uninit(world);
     }
-    if (world->name) {
-        g_free(world->name);
-    }
+    g_free(world->name);    /* always has a name */
     g_free(world);
 }
 
@@ -108,8 +106,5 @@ enum rocker_world_type world_type(World *world)
 
 const char *world_name(World *world)
 {
-    if (world) {
-        return world->name;
-    }
-    return "unknown-world";
+    return world->name;
 }

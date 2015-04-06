@@ -438,7 +438,6 @@ static int cmd_consume(Rocker *r, DescInfo *info)
     cmd = rocker_tlv_get_le16(tlvs[ROCKER_TLV_CMD_TYPE]);
     info_tlv = tlvs[ROCKER_TLV_CMD_INFO];
 
-
     /* This might be reworked to something like this:
      * Every world will have an array of command handlers from
      * ROCKER_TLV_CMD_TYPE_UNSPEC to ROCKER_TLV_CMD_TYPE_MAX. There is
@@ -456,7 +455,7 @@ static int cmd_consume(Rocker *r, DescInfo *info)
     case ROCKER_TLV_CMD_TYPE_OF_DPA_GROUP_MOD:
     case ROCKER_TLV_CMD_TYPE_OF_DPA_GROUP_DEL:
     case ROCKER_TLV_CMD_TYPE_OF_DPA_GROUP_GET_STATS:
-        // Add world_id TLV to OF_DPA cmds - XXX
+        /*  Add world_id TLV to OF_DPA cmds - XXX */
         DPRINTF("Rocker OF-DPA CMD %d\n", (int)cmd);
         world = r->worlds[ROCKER_WORLD_TYPE_OF_DPA];
         err = world_do_cmd(world, info, buf, cmd, info_tlv);
@@ -474,11 +473,10 @@ static int cmd_consume(Rocker *r, DescInfo *info)
             world_id = rocker_tlv_get_le32(tlvs[ROCKER_TLV_CMD_WORLD]);
             if (world_id < ROCKER_WORLD_TYPE_MAX) {
                 world = r->worlds[world_id];
-                DPRINTF("Rocker CMD %d for world %s\n", (int)cmd, 
+                DPRINTF("Rocker CMD %d for world %s\n", (int)cmd,
                             world_name(world));
                 err = world_do_cmd(world, info, buf, cmd, info_tlv);
-            }
-            else {
+            } else {
                 DPRINTF("Command for UNKNOWN World !!\n");
                 err = -ROCKER_EINVAL;
             }
@@ -494,7 +492,7 @@ static void rocker_msix_irq(Rocker *r, unsigned vector)
 {
     PCIDevice *dev = PCI_DEVICE(r);
 
-    // DPRINTF("MSI-X notify request for vector %d\n", vector);
+    DPRINTF("MSI-X notify request for vector %d\n", vector);
     if (vector >= ROCKER_MSIX_VEC_COUNT(r->fp_ports)) {
         DPRINTF("incorrect vector %d\n", vector);
         return;
@@ -1018,9 +1016,9 @@ static const char *rocker_reg_name(void *opaque, hwaddr addr)
 static void rocker_mmio_write(void *opaque, hwaddr addr, uint64_t val,
                               unsigned size)
 {
-    // DPRINTF("Write %s addr " TARGET_FMT_plx
-    //        ", size %u, val " TARGET_FMT_plx "\n",
-    //         rocker_reg_name(opaque, addr), addr, size, val);
+    DPRINTF("Write %s addr " TARGET_FMT_plx
+           ", size %u, val " TARGET_FMT_plx "\n",
+            rocker_reg_name(opaque, addr), addr, size, val);
 
     switch (size) {
     case 4:

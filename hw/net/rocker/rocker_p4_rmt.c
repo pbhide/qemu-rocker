@@ -37,15 +37,15 @@
 #include "rocker_p4_common.h"
 
 unsigned char *rocker_p4_iov_to_buffer(const struct iovec *iov, int iovcnt);
-static int rocker_p4_rmt_table_cmd (struct p4_rmt_world *p4_rmt, 
-                                    struct desc_info *info,
-                                    char *buf, unsigned short cmd,
-                                    RockerTlv **tlvs);
+static int rocker_p4_rmt_table_cmd(struct p4_rmt_world *p4_rmt,
+                                   struct desc_info *info,
+                                   char *buf, unsigned short cmd,
+                                   RockerTlv **tlvs);
 
 unsigned char *
 rocker_p4_iov_to_buffer(const struct iovec *iov, int iovcnt)
 {
-    // convert iov to a single contiguous buffer for p4 model
+    /*  convert iov to a single contiguous buffer for p4 model */
     int len = 0;
     unsigned char *buf = NULL;
 
@@ -61,28 +61,27 @@ rocker_p4_iov_to_buffer(const struct iovec *iov, int iovcnt)
 }
 
 
-void rocker_p4_rmt_tx (int eg_port1, void *pkt, int len, int ig_port1, 
-                            void *cookie)
+void rocker_p4_rmt_tx(int eg_port1, void *pkt, int len, int ig_port1,
+                      void *cookie)
 {
     struct iovec iov;
     int    iovcnt = 1;
     struct rocker *rocker;
     struct world *w;
     unsigned int fp_ig_port;
+    struct p4_rmt_world *p4_rmt = (struct p4_rmt_world *)cookie;
 
-    struct p4_rmt_world *p4_rmt = (struct p4_rmt_world *)cookie; // world_private(w);
     rocker = p4_rmt->rocker;
     w = p4_rmt->world;
 
     fp_port_from_pport((unsigned int)ig_port1, &fp_ig_port);
 
-    DPRINTF("rocker_p4_rmt_tx to port %d, len %d.... \n", eg_port1, len);
+    DPRINTF("rocker_p4_rmt_tx to port %d, len %d....\n", eg_port1, len);
     if (eg_port1 == 0) {
-        DPRINTF("rocker_p4_rmt_tx DROP .... \n");
-        free (pkt);
+        DPRINTF("rocker_p4_rmt_tx DROP ....\n");
         return;
     }
-    // convert the packet to iov
+    /*  convert the packet to iov */
     iov.iov_len = len;
     iov.iov_base = pkt;
     if (rocker == NULL) {
@@ -93,31 +92,32 @@ void rocker_p4_rmt_tx (int eg_port1, void *pkt, int len, int ig_port1,
         DPRINTF("P4-RMT world not found\n");
         return;
     }
-    // check for sup port
+    /*  check for sup port */
     if (p4_rmt->is_cpu_port(eg_port1)) {
-        DPRINTF("rocker_p4_rmt_tx to CPU from ingress port %d, len %d.... \n", 
+        DPRINTF("rocker_p4_rmt_tx to CPU from ingress port %d, len %d....\n",
                     ig_port1, len);
         rx_produce(w, ig_port1, &iov, iovcnt);
         return;
     }
-    // call qemu_send to send out on switch port
+    /*  call qemu_send to send out on switch port */
     rocker_port_eg(rocker, eg_port1, &iov, iovcnt);
     return;
 }
 
-static int rocker_p4_rmt_table_cmd (struct p4_rmt_world *p4_rmt, 
+static int rocker_p4_rmt_table_cmd(struct p4_rmt_world *p4_rmt,
                             struct desc_info *info,
                             char *buf, unsigned short cmd,
                             RockerTlv **tlvs)
 {
     unsigned int    table_id;
     unsigned char   *entry;
+
     if (tlvs[ROCKER_TLV_P4_RMT_INFO_TABLE_ID] == NULL ||
         tlvs[ROCKER_TLV_P4_RMT_INFO_TABLE_ENTRY] == NULL) {
         DPRINTF("Missing TLVs\n");
         return 0;
     }
-        
+
     table_id = rocker_tlv_get_u32(tlvs[ROCKER_TLV_P4_RMT_INFO_TABLE_ID]);
     entry = rocker_tlv_data(tlvs[ROCKER_TLV_P4_RMT_INFO_TABLE_ENTRY]);
 
@@ -130,7 +130,7 @@ static int rocker_p4_rmt_table_cmd (struct p4_rmt_world *p4_rmt,
 
     switch (cmd) {
         case ROCKER_TLV_CMD_TYPE_P4_RMT_TABLE_ENTRY_ADD:
-            // check if fn is provided
+            /*  check if fn is provided */
             if (p4_rmt->table_ops[table_id].add) {
                 p4_rmt->table_ops[table_id].add(entry);
             }
@@ -142,10 +142,10 @@ static int rocker_p4_rmt_table_cmd (struct p4_rmt_world *p4_rmt,
         {
             unsigned int action_id = rocker_tlv_get_u32(
                             tlvs[ROCKER_TLV_P4_RMT_INFO_TABLE_ENTRY]);
-            // XXX - add support for action data for default action
-            unsigned char data[4] = {0,0,0,0}; // HACK
+            /*  XXX - add support for action data for default action */
+            unsigned char data[4] = {0, 0, 0, 0}; /*  HACK */
             if (p4_rmt->table_ops[table_id].default_action) {
-                p4_rmt->table_ops[table_id].default_action((int)action_id, 
+                p4_rmt->table_ops[table_id].default_action((int)action_id,
                                                             data);
             }
             break;
@@ -154,43 +154,47 @@ static int rocker_p4_rmt_table_cmd (struct p4_rmt_world *p4_rmt,
     return 0;
 }
 
-ssize_t rocker_p4_rmt_ig (World *world, unsigned int pport,
-                            const struct iovec *iov, int iovcnt)
+ssize_t rocker_p4_rmt_ig(World *world, unsigned int pport,
+                         const struct iovec *iov, int iovcnt)
 {
     int pkt_len = iov_size(iov, iovcnt);
-    unsigned int port = pport;  // model uses pports (1-N)
+    unsigned int port = pport;  /*  model uses pports (1-N) */
     struct p4_rmt_world *p4_rmt = world_private(world);
+    unsigned char *buf;
 
-    // ingress pipeline
-    DPRINTF("p4_rmt_ingress port %d, len %d .... \n", port, pkt_len);
+    /*  ingress pipeline */
+    DPRINTF("p4_rmt_ingress port %d, len %d ....\n", port, pkt_len);
 
-    // convert iov to a pkt buffer
-    unsigned char *buf = rocker_p4_iov_to_buffer(iov, iovcnt);
+    /*  convert iov to a pkt buffer */
+    buf = rocker_p4_iov_to_buffer(iov, iovcnt);
     if (buf == NULL) {
         return 0;
     }
-    p4_rmt->process_pkt(port, buf, pkt_len);
-    return iov_size(iov, iovcnt);
+    if (p4_rmt->process_pkt(port, buf, pkt_len)) {
+        return 0;   /* some error - pkt is not processed */
+    }
+    return pkt_len;
 }
 
-void rocker_p4_rmt_uninit (World *world)
+void rocker_p4_rmt_uninit(World *world)
 {
-    // XXX rmt uninit
+    /*  XXX rmt uninit */
     return;
 }
 
-int rocker_p4_rmt_init (World *world)
+int rocker_p4_rmt_init(World *world)
 {
     struct p4_rmt_world *p4_rmt = world_private(world);
+
     p4_rmt->world = world;
     p4_rmt->rocker = world_rocker(world);
 
-    DPRINTF("p4_rmt_init ... \n");
+    DPRINTF("p4_rmt_init ...\n");
     rmt_init();
-    // debug logging
+    /*  debug logging */
     rmt_logger_set((p4_logging_f)printf);
     rmt_log_level_set(P4_LOG_LEVEL_TRACE);
-    // register transmit function
+    /*  register transmit function */
     rmt_transmit_register(rocker_p4_rmt_tx, p4_rmt);
     return 0;
 }

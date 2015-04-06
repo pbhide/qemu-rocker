@@ -120,7 +120,7 @@ int fp_port_eg(FpPort *port, const struct iovec *iov, int iovcnt)
     NetClientState *nc = qemu_get_queue(port->nic);
 
     if (port->enabled) {
-	    DPRINTF("Send to port %d\n", port->pport);
+        /* DPRINTF("Send to port %d\n", port->pport); */
         qemu_sendv_packet(nc, iov, iovcnt);
     }
 

@@ -47,7 +47,7 @@ int world_do_cmd(World *world, DescInfo *info,
                  char *buf, uint16_t cmd, RockerTlv *cmd_info_tlv);
 
 World *world_alloc(Rocker *r, size_t sizeof_private,
-                   enum rocker_world_type type, 
+                   enum rocker_world_type type,
                    const char *name, WorldOps *ops);
 void world_free(World *world);
 void world_reset(World *world);
@@ -59,6 +59,5 @@ enum rocker_world_type world_type(World *world);
 const char *world_name(World *world);
 
 World *rocker_get_world(Rocker *r, enum rocker_world_type type);
-World *rocker_world_from_pport(int pport);
 
 #endif /* _ROCKER_WORLD_H_ */

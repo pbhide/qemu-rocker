@@ -39,8 +39,8 @@
 
 bool rocker_p4_l2l3_is_cpu_port(int port);
 bool rocker_p4_l2l3_is_table_valid(unsigned int table_id);
-static void rocker_p4_l2l3_uninit (World *world);
-static int rocker_p4_l2l3_init (World *world);
+static void rocker_p4_l2l3_uninit(World *world);
+static int rocker_p4_l2l3_init(World *world);
 
 bool rocker_p4_l2l3_is_cpu_port(int port)
 {
@@ -51,30 +51,30 @@ bool rocker_p4_l2l3_is_table_valid(unsigned int table_id)
 {
     return (table_id > 0 && table_id < RMT_TABLE_COUNT);
 }
-static void rocker_p4_l2l3_uninit (World *world)
+static void rocker_p4_l2l3_uninit(World *world)
 {
-    // XXX rmt uninit
+    /*  XXX rmt uninit */
     return;
 }
 
-static unsigned int 
+static unsigned int
 rocker_p4_l2l3_mac_learn_notification(unsigned int sess_hdl,
                       rocker_p4_l2l3_mac_learn_digest_digest_msg_t *msg,
                       void *cookie)
 {
     struct p4_rmt_world *p4_rmt = (struct p4_rmt_world *)cookie;
     int i;
-    for (i=0; i<msg->num_entries; i++) {
+    for (i = 0; i < msg->num_entries; i++) {
         unsigned char addr[6];
         unsigned int pport = msg->entries[i].standard_metadata_ingress_port;
         unsigned short fid = htons(msg->entries[i].ingress_metadata_fid);
 
         memcpy(addr, msg->entries[i].ethernet_srcAddr, 6);
-        rocker_event_mac_vlan_seen(p4_rmt->rocker, 
+        rocker_event_mac_vlan_seen(p4_rmt->rocker,
                             pport,
                             addr,
                             fid);
-        DPRINTF("P4-l2l3 mac learn notification on port %d vlan %d\n", 
+        DPRINTF("P4-l2l3 mac learn notification on port %d vlan %d\n",
                                         pport, fid);
     }
 
@@ -82,7 +82,7 @@ rocker_p4_l2l3_mac_learn_notification(unsigned int sess_hdl,
     return 0;
 }
 
-static int rocker_p4_l2l3_init (World *world)
+static int rocker_p4_l2l3_init(World *world)
 {
     struct p4_rmt_world *p4_rmt = world_private(world);
 
@@ -91,11 +91,11 @@ static int rocker_p4_l2l3_init (World *world)
     p4_rmt->table_ops = &p4_l2l3_table_ops[0];
     p4_rmt->is_cpu_port = rocker_p4_l2l3_is_cpu_port;
     p4_rmt->is_table_valid = rocker_p4_l2l3_is_table_valid;
-    p4_rmt->process_pkt = rmt_process_pkt; // XXX - make it P4 program aware
+    p4_rmt->process_pkt = rmt_process_pkt; /*  XXX - make it P4 program aware */
 
-    // register for mac learn notification with learn filter
-    lf_mac_learn_digest_register(P4_L2L3_SESSION, 
-                                rocker_p4_l2l3_mac_learn_notification, 
+    /*  register for mac learn notification with learn filter */
+    lf_mac_learn_digest_register(P4_L2L3_SESSION,
+                                rocker_p4_l2l3_mac_learn_notification,
                                 (void *)p4_rmt);
 
     return 0;
@@ -110,6 +110,6 @@ static WorldOps p4_ops = {
 
 World *p4_l2l3_world_alloc(Rocker *r)
 {
-    return world_alloc(r, sizeof(struct p4_rmt_world), 
+    return world_alloc(r, sizeof(struct p4_rmt_world),
             ROCKER_WORLD_TYPE_P4_L2L3, "p4_l2l3", &p4_ops);
 }
