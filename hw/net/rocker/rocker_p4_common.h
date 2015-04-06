@@ -31,7 +31,8 @@ typedef struct p4_rmt_world {
     p4_rmt_table_ops_t      *table_ops;    // array of table ops
 } p4_rmt_world_t;
 
-void    rocker_p4_rmt_tx (int eg_port1, void *pkt, int len, int ig_port1);
+void    rocker_p4_rmt_tx (int eg_port1, void *pkt, int len, int ig_port1, 
+                            void *cookie);
 ssize_t rocker_p4_rmt_ig (World *world, unsigned int pport,
                             const struct iovec *iov, int iovcnt);
 int     rocker_p4_rmt_cmd(World *world, struct desc_info *info,

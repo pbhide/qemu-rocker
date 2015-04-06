@@ -61,7 +61,8 @@ rocker_p4_iov_to_buffer(const struct iovec *iov, int iovcnt)
 }
 
 
-void rocker_p4_rmt_tx (int eg_port1, void *pkt, int len, int ig_port1)
+void rocker_p4_rmt_tx (int eg_port1, void *pkt, int len, int ig_port1, 
+                            void *cookie)
 {
     struct iovec iov;
     int    iovcnt = 1;
@@ -69,9 +70,9 @@ void rocker_p4_rmt_tx (int eg_port1, void *pkt, int len, int ig_port1)
     struct world *w;
     unsigned int fp_ig_port;
 
-    w = rocker_world_from_pport(ig_port1);
-    struct p4_rmt_world *p4_rmt = world_private(w);
+    struct p4_rmt_world *p4_rmt = (struct p4_rmt_world *)cookie; // world_private(w);
     rocker = p4_rmt->rocker;
+    w = p4_rmt->world;
 
     fp_port_from_pport((unsigned int)ig_port1, &fp_ig_port);
 
@@ -190,7 +191,7 @@ int rocker_p4_rmt_init (World *world)
     rmt_logger_set((p4_logging_f)printf);
     rmt_log_level_set(P4_LOG_LEVEL_TRACE);
     // register transmit function
-    rmt_transmit_register(rocker_p4_rmt_tx);
+    rmt_transmit_register(rocker_p4_rmt_tx, p4_rmt);
     return 0;
 }
 

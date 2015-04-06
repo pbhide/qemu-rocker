@@ -35,9 +35,6 @@
 #include "rocker_of_dpa.h"
 #include "rocker_p4_l2l3.h"
 
-// Global array to locate port info and world based on port #
-static FpPort *g_fp_ports[ROCKER_FP_PORTS_MAX];
-
 struct rocker {
     /* private */
     PCIDevice parent_obj;
@@ -148,17 +145,6 @@ RockerPortList *qmp_query_rocker_ports(const char *name, Error **errp)
 uint32_t rocker_fp_ports(Rocker *r)
 {
     return r->fp_ports;
-}
-
-World *rocker_world_from_pport(int pport)
-{
-    unsigned int port;
-    if (!fp_port_from_pport((unsigned int)pport, &port)) {
-        return NULL;
-    }
-    return fp_port_get_world(g_fp_ports[port]);
-
-
 }
 
 static uint32_t rocker_get_pport_by_tx_ring(Rocker *r,
@@ -1441,7 +1427,6 @@ static int pci_rocker_init(PCIDevice *dev)
 
         r->fp_port[i] = port;
         fp_port_set_world(port, r->world_dflt);
-        g_fp_ports[i] = port;
     }
 
     QLIST_INSERT_HEAD(&rockers, r, next);
@@ -1486,7 +1471,6 @@ static void pci_rocker_uninit(PCIDevice *dev)
 
         fp_port_free(port);
         r->fp_port[i] = NULL;
-        g_fp_ports[i] = NULL;
     }
 
     for (i = 0; i < rocker_pci_ring_count(r); i++) {
