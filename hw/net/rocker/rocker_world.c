@@ -75,7 +75,7 @@ void world_free(World *world)
     if (world->ops->uninit) {
         world->ops->uninit(world);
     }
-    g_free(world->name);    /* always has a name */
+    g_free(world->name);
     g_free(world);
 }
 

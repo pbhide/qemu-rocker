@@ -51,7 +51,7 @@ rocker_p4_iov_to_buffer(const struct iovec *iov, int iovcnt)
 
     len = iov_size(iov, iovcnt);
     DPRINTF("convert %d iovs to a buffer of len %d\n", iovcnt, len);
-    buf = malloc(len);
+    buf = g_malloc(len);
     if (buf == NULL) {
         DPRINTF("Cannot allocate buffer\n");
         return buf;
@@ -136,17 +136,19 @@ static int rocker_p4_rmt_table_cmd(struct p4_rmt_world *p4_rmt,
             }
             break;
         case ROCKER_TLV_CMD_TYPE_P4_RMT_TABLE_ENTRY_MOD:
+            if (p4_rmt->table_ops[table_id].mod) {
+                p4_rmt->table_ops[table_id].mod(entry);
+            }
+            break;
         case ROCKER_TLV_CMD_TYPE_P4_RMT_TABLE_ENTRY_DEL:
+            if (p4_rmt->table_ops[table_id].del) {
+                p4_rmt->table_ops[table_id].del(entry);
+            }
             break;
         case ROCKER_TLV_CMD_TYPE_P4_RMT_TABLE_DEFAULT_ACTION:
         {
-            unsigned int action_id = rocker_tlv_get_u32(
-                            tlvs[ROCKER_TLV_P4_RMT_INFO_TABLE_ENTRY]);
-            /*  XXX - add support for action data for default action */
-            unsigned char data[4] = {0, 0, 0, 0}; /*  HACK */
             if (p4_rmt->table_ops[table_id].default_action) {
-                p4_rmt->table_ops[table_id].default_action((int)action_id,
-                                                            data);
+                p4_rmt->table_ops[table_id].default_action(entry);
             }
             break;
         }
@@ -158,6 +160,7 @@ ssize_t rocker_p4_rmt_ig(World *world, unsigned int pport,
                          const struct iovec *iov, int iovcnt)
 {
     int pkt_len = iov_size(iov, iovcnt);
+    int ret_len = pkt_len;
     unsigned int port = pport;  /*  model uses pports (1-N) */
     struct p4_rmt_world *p4_rmt = world_private(world);
     unsigned char *buf;
@@ -171,14 +174,20 @@ ssize_t rocker_p4_rmt_ig(World *world, unsigned int pport,
         return 0;
     }
     if (p4_rmt->process_pkt(port, buf, pkt_len)) {
-        return 0;   /* some error - pkt is not processed */
+        /* some error - pkt is not processed */
+        ret_len = 0;
     }
-    return pkt_len;
+    /* P4 model makes a copy of the packet */
+    g_free(buf);
+    return ret_len;
 }
 
 void rocker_p4_rmt_uninit(World *world)
 {
-    /*  XXX rmt uninit */
+    /* unregister debug logging */
+    rmt_logger_set((p4_logging_f)NULL);
+    /* unregister transmit function */
+    rmt_transmit_register(NULL, NULL);
     return;
 }
 

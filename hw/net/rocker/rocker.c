@@ -455,7 +455,9 @@ static int cmd_consume(Rocker *r, DescInfo *info)
     case ROCKER_TLV_CMD_TYPE_OF_DPA_GROUP_MOD:
     case ROCKER_TLV_CMD_TYPE_OF_DPA_GROUP_DEL:
     case ROCKER_TLV_CMD_TYPE_OF_DPA_GROUP_GET_STATS:
-        /*  Add world_id TLV to OF_DPA cmds - XXX */
+        /* world_id TLV can be added to OF_DPA cmds to remove 
+         * all individual cmds from here
+         */
         DPRINTF("Rocker OF-DPA CMD %d\n", (int)cmd);
         world = r->worlds[ROCKER_WORLD_TYPE_OF_DPA];
         err = world_do_cmd(world, info, buf, cmd, info_tlv);
@@ -492,7 +494,7 @@ static void rocker_msix_irq(Rocker *r, unsigned vector)
 {
     PCIDevice *dev = PCI_DEVICE(r);
 
-    DPRINTF("MSI-X notify request for vector %d\n", vector);
+    // DPRINTF("MSI-X notify request for vector %d\n", vector);
     if (vector >= ROCKER_MSIX_VEC_COUNT(r->fp_ports)) {
         DPRINTF("incorrect vector %d\n", vector);
         return;
@@ -1016,9 +1018,11 @@ static const char *rocker_reg_name(void *opaque, hwaddr addr)
 static void rocker_mmio_write(void *opaque, hwaddr addr, uint64_t val,
                               unsigned size)
 {
+#if 0
     DPRINTF("Write %s addr " TARGET_FMT_plx
            ", size %u, val " TARGET_FMT_plx "\n",
             rocker_reg_name(opaque, addr), addr, size, val);
+#endif
 
     switch (size) {
     case 4:

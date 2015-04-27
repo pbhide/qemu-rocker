@@ -53,8 +53,10 @@ bool rocker_p4_l2l3_is_table_valid(unsigned int table_id)
 }
 static void rocker_p4_l2l3_uninit(World *world)
 {
-    /*  XXX rmt uninit */
-    return;
+    /* unregister from mac_learn_notification */
+    lf_mac_learn_digest_deregister(P4_L2L3_SESSION);
+    /* common uninit for all P4 worlds */
+    rocker_p4_rmt_uninit(world);
 }
 
 static unsigned int
@@ -91,7 +93,12 @@ static int rocker_p4_l2l3_init(World *world)
     p4_rmt->table_ops = &p4_l2l3_table_ops[0];
     p4_rmt->is_cpu_port = rocker_p4_l2l3_is_cpu_port;
     p4_rmt->is_table_valid = rocker_p4_l2l3_is_table_valid;
-    p4_rmt->process_pkt = rmt_process_pkt; /*  XXX - make it P4 program aware */
+    /* Current P4 model does not support multiple pipelines (programs / worlds)
+     * within the same instance (process), once the support is added
+     * process_pkt for a pipeline associated with the ingress port
+     * will be called
+     */
+    p4_rmt->process_pkt = rmt_process_pkt;
 
     /*  register for mac learn notification with learn filter */
     lf_mac_learn_digest_register(P4_L2L3_SESSION,
