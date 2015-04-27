@@ -494,7 +494,9 @@ static void rocker_msix_irq(Rocker *r, unsigned vector)
 {
     PCIDevice *dev = PCI_DEVICE(r);
 
-    // DPRINTF("MSI-X notify request for vector %d\n", vector);
+#if 1
+    DPRINTF("MSI-X notify request for vector %d\n", vector);
+#endif
     if (vector >= ROCKER_MSIX_VEC_COUNT(r->fp_ports)) {
         DPRINTF("incorrect vector %d\n", vector);
         return;
@@ -1018,7 +1020,7 @@ static const char *rocker_reg_name(void *opaque, hwaddr addr)
 static void rocker_mmio_write(void *opaque, hwaddr addr, uint64_t val,
                               unsigned size)
 {
-#if 0
+#if 1
     DPRINTF("Write %s addr " TARGET_FMT_plx
            ", size %u, val " TARGET_FMT_plx "\n",
             rocker_reg_name(opaque, addr), addr, size, val);
