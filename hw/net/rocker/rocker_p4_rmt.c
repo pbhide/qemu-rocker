@@ -31,7 +31,7 @@
 #include "rocker_p4_rmt.h"
 #include "rocker_p4_l2l3_features.h"
 #include "rocker_p4_l2l3_enums.h"
-#include "rocker_p4_l2l3_tables.h"
+//#include "rocker_p4_l2l3_tables.h"
 #include "rocker_p4_l2l3_tables_if.h"
 #include "rocker_p4_l2l3.h"
 #include "rocker_p4_common.h"

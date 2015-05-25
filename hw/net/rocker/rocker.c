@@ -34,6 +34,7 @@
 #include "rocker_world.h"
 #include "rocker_of_dpa.h"
 #include "rocker_p4_l2l3.h"
+#include "rocker_p4.h"
 
 struct rocker {
     /* private */
@@ -95,6 +96,25 @@ World *rocker_get_world(Rocker *r, enum rocker_world_type type)
         return r->worlds[type];
     }
     return NULL;
+}
+
+static void
+rocker_world_allocate(Rocker *r, int type) 
+{
+    switch (type) {
+        case ROCKER_WORLD_TYPE_OF_DPA:
+            r->worlds[ROCKER_WORLD_TYPE_OF_DPA] = of_dpa_world_alloc(r);
+            break;
+        case ROCKER_WORLD_TYPE_P4_L2L3:
+            r->worlds[ROCKER_WORLD_TYPE_P4_L2L3] = p4_l2l3_world_alloc(r);
+            break;
+        case ROCKER_WORLD_TYPE_ROCKER_P4:
+            r->worlds[ROCKER_WORLD_TYPE_ROCKER_P4] = rocker_p4_world_alloc(r);
+            break;
+        default:
+            assert(0);
+            break;
+    }
 }
 
 RockerSwitch *qmp_query_rocker(const char *name, Error **errp)
@@ -403,6 +423,10 @@ static int cmd_set_port_settings(Rocker *r,
 
     if (tlvs[ROCKER_TLV_CMD_PORT_SETTINGS_MODE]) {
         mode = rocker_tlv_get_u8(tlvs[ROCKER_TLV_CMD_PORT_SETTINGS_MODE]);
+        /* Allocate worlds on demand */
+        if (r->worlds[mode] == NULL) {
+            rocker_world_allocate(r, mode); 
+        }
         fp_port_set_world(fp_port, r->worlds[mode]);
     }
 
@@ -1310,17 +1334,23 @@ static int pci_rocker_init(PCIDevice *dev)
     static int sw_index;
     int i, err = 0;
 
-    /* allocate all worlds */
-    r->worlds[ROCKER_WORLD_TYPE_OF_DPA] = of_dpa_world_alloc(r);
-    r->worlds[ROCKER_WORLD_TYPE_P4_L2L3] = p4_l2l3_world_alloc(r);
-
+    /* allocate default world */
+    rocker_world_allocate(r, ROCKER_WORLD_TYPE_OF_DPA); 
     r->world_dflt = r->worlds[ROCKER_WORLD_TYPE_OF_DPA];
+#if 0
+    r->worlds[ROCKER_WORLD_TYPE_OF_DPA] = of_dpa_world_alloc(r);
+    // r->worlds[ROCKER_WORLD_TYPE_P4_L2L3] = p4_l2l3_world_alloc(r);
+#else
+    rocker_world_allocate(r, ROCKER_WORLD_TYPE_ROCKER_P4); 
+#endif
 
+#if 0
     for (i = 0; i < ROCKER_WORLD_TYPE_MAX; i++) {
         if (!r->worlds[i]) {
             goto err_world_alloc;
         }
     }
+#endif
 
     /* set up memory-mapped region at BAR0 */
 
@@ -1454,7 +1484,7 @@ err_duplicate:
 err_msix_init:
     object_unparent(OBJECT(&r->msix_bar));
     object_unparent(OBJECT(&r->mmio));
-err_world_alloc:
+//err_world_alloc:
     for (i = 0; i < ROCKER_WORLD_TYPE_MAX; i++) {
         if (r->worlds[i]) {
             world_free(r->worlds[i]);

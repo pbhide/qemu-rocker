@@ -179,7 +179,8 @@ all-obj-$(CONFIG_SOFTMMU) += $(block-obj-y)
 $(QEMU_PROG_BUILD): config-devices.mak
 
 # once P4 compiler is integrated into this repo, these libs can be locally built
-P4_LIBS = ../hw/net/rocker/p4lib/p4_l2l3_bm.a
+# P4_LIBS = ../hw/net/rocker/p4lib/p4_l2l3_bm.a
+P4_LIBS = ../hw/net/rocker/p4lib/rocker_p4_bm.a
 P4_LIBS += ../hw/net/rocker/p4lib/p4utils.a
 
 $(P4_LIBS):

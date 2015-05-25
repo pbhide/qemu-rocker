@@ -216,6 +216,7 @@ enum {
 enum {
     ROCKER_PORT_MODE_OF_DPA = 0,
     ROCKER_PORT_MODE_P4_L2L3,
+    ROCKER_PORT_MODE_ROCKER_P4,
 };
 
 /* event msg */
