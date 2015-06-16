@@ -487,11 +487,11 @@ static int cmd_consume(Rocker *r, DescInfo *info)
         err = world_do_cmd(world, info, buf, cmd, info_tlv);
         break;
     case ROCKER_TLV_CMD_TYPE_GET_PORT_SETTINGS:
-        DPRINTF("Rocker port-get CMD %d\n", (int)cmd);
+        // DPRINTF("Rocker port-get CMD %d\n", (int)cmd);
         err = cmd_get_port_settings(r, info, buf, info_tlv);
         break;
     case ROCKER_TLV_CMD_TYPE_SET_PORT_SETTINGS:
-        DPRINTF("Rocker port-set CMD %d\n", (int)cmd);
+        // DPRINTF("Rocker port-set CMD %d\n", (int)cmd);
         err = cmd_set_port_settings(r, info_tlv);
         break;
     default:
@@ -499,8 +499,8 @@ static int cmd_consume(Rocker *r, DescInfo *info)
             world_id = rocker_tlv_get_le32(tlvs[ROCKER_TLV_CMD_WORLD]);
             if (world_id < ROCKER_WORLD_TYPE_MAX) {
                 world = r->worlds[world_id];
-                DPRINTF("Rocker CMD %d for world %s\n", (int)cmd,
-                            world_name(world));
+                // DPRINTF("Rocker CMD %d for world %s\n", (int)cmd,
+                //           world_name(world));
                 err = world_do_cmd(world, info, buf, cmd, info_tlv);
             } else {
                 DPRINTF("Command for UNKNOWN World !!\n");
@@ -518,7 +518,7 @@ static void rocker_msix_irq(Rocker *r, unsigned vector)
 {
     PCIDevice *dev = PCI_DEVICE(r);
 
-#if 1
+#if 0
     DPRINTF("MSI-X notify request for vector %d\n", vector);
 #endif
     if (vector >= ROCKER_MSIX_VEC_COUNT(r->fp_ports)) {
@@ -1044,7 +1044,7 @@ static const char *rocker_reg_name(void *opaque, hwaddr addr)
 static void rocker_mmio_write(void *opaque, hwaddr addr, uint64_t val,
                               unsigned size)
 {
-#if 1
+#if 0
     DPRINTF("Write %s addr " TARGET_FMT_plx
            ", size %u, val " TARGET_FMT_plx "\n",
             rocker_reg_name(opaque, addr), addr, size, val);

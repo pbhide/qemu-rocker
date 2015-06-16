@@ -68,7 +68,7 @@ rocker_p4_mac_learn_notification(unsigned int sess_hdl,
     for (i = 0; i < msg->num_entries; i++) {
         unsigned char addr[6];
         unsigned int pport = msg->entries[i].standard_metadata_ingress_port;
-        unsigned short fid = htons(msg->entries[i].ingress_metadata_fid);
+        unsigned short fid = ntohs(msg->entries[i].ingress_metadata_fid);
 
         memcpy(addr, msg->entries[i].ethernet_sa, 6);
         rocker_event_mac_vlan_seen(p4_rmt->rocker,
@@ -76,7 +76,7 @@ rocker_p4_mac_learn_notification(unsigned int sess_hdl,
                             addr,
                             fid);
         DPRINTF("Rocker_P4 mac learn notification on port %d vlan %d\n",
-                                        pport, fid);
+                                        pport, (int)htons(fid));
     }
 
     lf_mac_learn_digest_notify_ack(ROCKER_P4_SESSION, msg);

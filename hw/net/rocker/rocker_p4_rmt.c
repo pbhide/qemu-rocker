@@ -50,7 +50,6 @@ rocker_p4_iov_to_buffer(const struct iovec *iov, int iovcnt)
     unsigned char *buf = NULL;
 
     len = iov_size(iov, iovcnt);
-    DPRINTF("convert %d iovs to a buffer of len %d\n", iovcnt, len);
     buf = g_malloc(len);
     if (buf == NULL) {
         DPRINTF("Cannot allocate buffer\n");
@@ -121,10 +120,10 @@ static int rocker_p4_rmt_table_cmd(struct p4_rmt_world *p4_rmt,
     table_id = rocker_tlv_get_u32(tlvs[ROCKER_TLV_P4_RMT_INFO_TABLE_ID]);
     entry = rocker_tlv_data(tlvs[ROCKER_TLV_P4_RMT_INFO_TABLE_ENTRY]);
 
-    DPRINTF("p4_rmt_table_cmd for table %d\n", table_id);
+    // DPRINTF("p4_rmt_table_cmd for table %d\n", table_id);
 
     if (!p4_rmt->is_table_valid(table_id)) {
-        DPRINTF("p4_rmt_table_cmd for invalide table %d\n", table_id);
+        DPRINTF("p4_rmt_table_cmd for invalid table %d\n", table_id);
         return 0;
     }
 
@@ -132,6 +131,7 @@ static int rocker_p4_rmt_table_cmd(struct p4_rmt_world *p4_rmt,
         case ROCKER_TLV_CMD_TYPE_P4_RMT_TABLE_ENTRY_ADD:
             /*  check if fn is provided */
             if (p4_rmt->table_ops[table_id].add) {
+                DPRINTF("p4_rmt_table_entry_add for table %d\n", table_id);
                 p4_rmt->table_ops[table_id].add(entry);
             }
             break;
@@ -142,6 +142,7 @@ static int rocker_p4_rmt_table_cmd(struct p4_rmt_world *p4_rmt,
             break;
         case ROCKER_TLV_CMD_TYPE_P4_RMT_TABLE_ENTRY_DEL:
             if (p4_rmt->table_ops[table_id].del) {
+                DPRINTF("p4_rmt_table_entry_del for table %d\n", table_id);
                 p4_rmt->table_ops[table_id].del(entry);
             }
             break;
@@ -202,7 +203,7 @@ int rocker_p4_rmt_init(World *world)
     rmt_init();
     /*  debug logging */
     rmt_logger_set((p4_logging_f)printf);
-    rmt_log_level_set(P4_LOG_LEVEL_TRACE);
+    rmt_log_level_set(P4_LOG_LEVEL_INFO);
     /*  register transmit function */
     rmt_transmit_register(rocker_p4_rmt_tx, p4_rmt);
     return 0;
@@ -215,7 +216,7 @@ int rocker_p4_rmt_cmd(World *world, struct desc_info *info,
     RockerTlv *tlvs[ROCKER_TLV_P4_RMT_INFO_MAX + 1];
 
     rocker_tlv_parse_nested(tlvs, ROCKER_TLV_P4_RMT_INFO_MAX, cmd_info_tlv);
-    DPRINTF("Rocker P4 CMD %d\n", (int)cmd);
+    // DPRINTF("Rocker P4 CMD %d\n", (int)cmd);
 
     switch (cmd) {
     case ROCKER_TLV_CMD_TYPE_P4_RMT_TABLE_ENTRY_ADD:
