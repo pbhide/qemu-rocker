@@ -3,6 +3,7 @@
  *
  * Copyright (c) 2014 Scott Feldman <sfeldma@gmail.com>
  * Copyright (c) 2014 Jiri Pirko <jiri@resnulli.us>
+ * Copyright (c) 2015 Parag Bhide <parag.bhide@barefootnetworks.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +33,8 @@
 #include "rocker_tlv.h"
 #include "rocker_world.h"
 #include "rocker_of_dpa.h"
+#include "rocker_p4_l2l3.h"
+#include "rocker_p4.h"
 
 struct rocker {
     /* private */
@@ -93,6 +96,25 @@ World *rocker_get_world(Rocker *r, enum rocker_world_type type)
         return r->worlds[type];
     }
     return NULL;
+}
+
+static void
+rocker_world_allocate(Rocker *r, int type) 
+{
+    switch (type) {
+        case ROCKER_WORLD_TYPE_OF_DPA:
+            r->worlds[ROCKER_WORLD_TYPE_OF_DPA] = of_dpa_world_alloc(r);
+            break;
+        case ROCKER_WORLD_TYPE_P4_L2L3:
+            r->worlds[ROCKER_WORLD_TYPE_P4_L2L3] = p4_l2l3_world_alloc(r);
+            break;
+        case ROCKER_WORLD_TYPE_ROCKER_P4:
+            r->worlds[ROCKER_WORLD_TYPE_ROCKER_P4] = rocker_p4_world_alloc(r);
+            break;
+        default:
+            assert(0);
+            break;
+    }
 }
 
 RockerSwitch *qmp_query_rocker(const char *name, Error **errp)
@@ -401,6 +423,10 @@ static int cmd_set_port_settings(Rocker *r,
 
     if (tlvs[ROCKER_TLV_CMD_PORT_SETTINGS_MODE]) {
         mode = rocker_tlv_get_u8(tlvs[ROCKER_TLV_CMD_PORT_SETTINGS_MODE]);
+        /* Allocate worlds on demand */
+        if (r->worlds[mode] == NULL) {
+            rocker_world_allocate(r, mode); 
+        }
         fp_port_set_world(fp_port, r->worlds[mode]);
     }
 
@@ -420,7 +446,8 @@ static int cmd_consume(Rocker *r, DescInfo *info)
     RockerTlv *info_tlv;
     World *world;
     uint16_t cmd;
-    int err;
+    uint32_t world_id = ROCKER_WORLD_TYPE_MAX;
+    int err = 0;
 
     if (!buf) {
         return -ROCKER_ENXIO;
@@ -452,20 +479,38 @@ static int cmd_consume(Rocker *r, DescInfo *info)
     case ROCKER_TLV_CMD_TYPE_OF_DPA_GROUP_MOD:
     case ROCKER_TLV_CMD_TYPE_OF_DPA_GROUP_DEL:
     case ROCKER_TLV_CMD_TYPE_OF_DPA_GROUP_GET_STATS:
+        /* world_id TLV can be added to OF_DPA cmds to remove 
+         * all individual cmds from here
+         */
+        DPRINTF("Rocker OF-DPA CMD %d\n", (int)cmd);
         world = r->worlds[ROCKER_WORLD_TYPE_OF_DPA];
         err = world_do_cmd(world, info, buf, cmd, info_tlv);
         break;
     case ROCKER_TLV_CMD_TYPE_GET_PORT_SETTINGS:
+        // DPRINTF("Rocker port-get CMD %d\n", (int)cmd);
         err = cmd_get_port_settings(r, info, buf, info_tlv);
         break;
     case ROCKER_TLV_CMD_TYPE_SET_PORT_SETTINGS:
+        // DPRINTF("Rocker port-set CMD %d\n", (int)cmd);
         err = cmd_set_port_settings(r, info_tlv);
         break;
     default:
-        err = -ROCKER_EINVAL;
+        if (tlvs[ROCKER_TLV_CMD_WORLD]) {
+            world_id = rocker_tlv_get_le32(tlvs[ROCKER_TLV_CMD_WORLD]);
+            if (world_id < ROCKER_WORLD_TYPE_MAX) {
+                world = r->worlds[world_id];
+                // DPRINTF("Rocker CMD %d for world %s\n", (int)cmd,
+                //           world_name(world));
+                err = world_do_cmd(world, info, buf, cmd, info_tlv);
+            } else {
+                DPRINTF("Command for UNKNOWN World !!\n");
+                err = -ROCKER_EINVAL;
+            }
+        } else {
+            err = -ROCKER_EINVAL;
+        }
         break;
     }
-
     return err;
 }
 
@@ -473,7 +518,9 @@ static void rocker_msix_irq(Rocker *r, unsigned vector)
 {
     PCIDevice *dev = PCI_DEVICE(r);
 
+#if 0
     DPRINTF("MSI-X notify request for vector %d\n", vector);
+#endif
     if (vector >= ROCKER_MSIX_VEC_COUNT(r->fp_ports)) {
         DPRINTF("incorrect vector %d\n", vector);
         return;
@@ -997,9 +1044,11 @@ static const char *rocker_reg_name(void *opaque, hwaddr addr)
 static void rocker_mmio_write(void *opaque, hwaddr addr, uint64_t val,
                               unsigned size)
 {
+#if 0
     DPRINTF("Write %s addr " TARGET_FMT_plx
-            ", size %u, val " TARGET_FMT_plx "\n",
+           ", size %u, val " TARGET_FMT_plx "\n",
             rocker_reg_name(opaque, addr), addr, size, val);
+#endif
 
     switch (size) {
     case 4:
@@ -1285,16 +1334,23 @@ static int pci_rocker_init(PCIDevice *dev)
     static int sw_index;
     int i, err = 0;
 
-    /* allocate worlds */
-
-    r->worlds[ROCKER_WORLD_TYPE_OF_DPA] = of_dpa_world_alloc(r);
+    /* allocate default world */
+    rocker_world_allocate(r, ROCKER_WORLD_TYPE_OF_DPA); 
     r->world_dflt = r->worlds[ROCKER_WORLD_TYPE_OF_DPA];
+#if 0
+    r->worlds[ROCKER_WORLD_TYPE_OF_DPA] = of_dpa_world_alloc(r);
+    // r->worlds[ROCKER_WORLD_TYPE_P4_L2L3] = p4_l2l3_world_alloc(r);
+#else
+    rocker_world_allocate(r, ROCKER_WORLD_TYPE_ROCKER_P4); 
+#endif
 
+#if 0
     for (i = 0; i < ROCKER_WORLD_TYPE_MAX; i++) {
         if (!r->worlds[i]) {
             goto err_world_alloc;
         }
     }
+#endif
 
     /* set up memory-mapped region at BAR0 */
 
@@ -1428,7 +1484,7 @@ err_duplicate:
 err_msix_init:
     object_unparent(OBJECT(&r->msix_bar));
     object_unparent(OBJECT(&r->mmio));
-err_world_alloc:
+//err_world_alloc:
     for (i = 0; i < ROCKER_WORLD_TYPE_MAX; i++) {
         if (r->worlds[i]) {
             world_free(r->worlds[i]);
